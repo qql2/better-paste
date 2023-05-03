@@ -1,0 +1,1 @@
+export enum Switch { false, true }
