@@ -3,6 +3,8 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
 import { OPTIMIZE_PASTER_SETTINGS, OptimizePasteController, optimizePasteSettings } from 'src/optimizePaste';
 
+import { SettingTab } from 'src/settingTab';
+
 interface PLUGIN_SETTINGS extends OPTIMIZE_PASTER_SETTINGS {
 
 }
@@ -21,6 +23,7 @@ export default class BetterPaste extends Plugin {
 	}
 	init() {
 		this.optimizePasteController = new OptimizePasteController(this)
+		this.addSettingTab(new SettingTab(this))
 	}
 
 	onunload() {

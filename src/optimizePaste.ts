@@ -5,20 +5,21 @@
 /* eslint-disable @typescript-eslint/no-empty-interface */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 
-import { Editor, MarkdownView, Notice } from 'obsidian';
+import { Editor, MarkdownView, Notice, Setting } from 'obsidian';
 
 import BetterPaste from '../main';
 import { EnhancedEditor } from 'enhanced-editor';
+import { SettingTab } from './settingTab';
 import { Switch } from 'constant/consisit';
 
 interface SETTINGS {
-    autoDelNulLineSwitch: Switch
+    autoDelNulLine: boolean
 }
 
 export type { SETTINGS as OPTIMIZE_PASTER_SETTINGS }
 
 const settings = {
-    autoDelNulLineSwitch: 1
+    autoDelNulLine: true
 }
 
 
@@ -26,6 +27,7 @@ const settings = {
 export { settings as optimizePasteSettings }
 
 export class OptimizePasteCore {
+    static featureName = "删除文字间一个空行功能"
     constructor(protected plugin: BetterPaste) {
     }
     /** 顶层入口
@@ -35,7 +37,7 @@ export class OptimizePasteCore {
         return new Promise((resolve, reject) => {
             //Testlog('Paste Event!');
             //Testlog(this.settings.autoDelNulLineSwitch);
-            if (!this.plugin.settings.autoDelNulLineSwitch) resolve(false)
+            if (!this.plugin.settings.autoDelNulLine) resolve(false)
             let editor = this.plugin.app.workspace.activeEditor?.editor!
             if (!editor) resolve(false)
             let BeforePos = editor.getCursor();
@@ -55,11 +57,6 @@ export class OptimizePasteCore {
             })
         )
     }
-    async SwitchAutoDelLine() {
-        this.plugin.settings.autoDelNulLineSwitch = (this.plugin.settings.autoDelNulLineSwitch + 1) % 2
-        await this.plugin.saveSettings();
-        new Notice("开启粘贴自动删除间隔空行功能:" + Switch[this.plugin.settings.autoDelNulLineSwitch]);
-    }
 }
 
 export class OptimizePasteController extends OptimizePasteCore {
@@ -73,6 +70,20 @@ export class OptimizePasteController extends OptimizePasteCore {
         this.clearFuncs = []
         this.addCommand()
         this.registListener()
+        SettingTab.addSettingAdder(containerEl => this.switchAutoDelNulLine(containerEl))
+    }
+    switchAutoDelNulLine(containerEl: HTMLElement): HTMLElement {
+        new Setting(containerEl)
+            .setName(`是否启用自动${OptimizePasteCore.featureName}`)
+            .addToggle(toggle => {
+                toggle
+                    .setValue(this.plugin.settings.autoDelNulLine)
+                    .onChange(v => {
+                        this.plugin.settings.autoDelNulLine = v
+                        this.plugin.saveSettings()
+                    })
+            })
+        return containerEl
     }
     die() {
         for (const func of this.clearFuncs) {
@@ -82,16 +93,8 @@ export class OptimizePasteController extends OptimizePasteCore {
     }
     addCommand() {
         this.plugin.addCommand({
-            id: '切换"粘贴自动删除每一个空行",SwitchAutoDel',
-            name: '切换"粘贴自动删除每一个空行",SwitchAutoDel',
-            editorCallback: async (editor: Editor, view: MarkdownView) => {
-                await this.SwitchAutoDelLine();
-                this.registListener();
-            }
-        });
-        this.plugin.addCommand({
-            id: '删除所选的每一个空行',
-            name: '删除所选的每一个空行',
+            id: `${OptimizePasteCore.featureName}`,
+            name: `${OptimizePasteCore.featureName}`,
             editorCallback: (editor: Editor, view: MarkdownView) => {
                 let enhancedEditor = new EnhancedEditor(editor)
                 let { startPos, endPos, txt: rawIn } = enhancedEditor.GetMultiLineInSelection()
